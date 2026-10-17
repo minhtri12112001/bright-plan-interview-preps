@@ -67,6 +67,7 @@ Behaviour:
 - store: `setQuery` / `clearQuery`
 - `PEOPLE` data: 5 entries, unique ids
 - `TeamDirectory`: U1–U4 and U6 through real user events
+- Playwright e2e (`e2e/`): U1–U5 and R7 in real Chromium, desktop and Pixel 7 viewports, with screenshots per test
 
 ## Out of scope / follow-ups
 
