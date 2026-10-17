@@ -4,7 +4,7 @@ Practice task: a small, searchable team directory of five fictional people. You 
 
 | Folder | Stack | Status |
 |--------|-------|--------|
-| [`web/`](web/) | Vite · React 19 · TypeScript · Zustand · shadcn/ui (Tailwind v4) · Vitest + React Testing Library | Done |
+| [`web/`](web/) | Vite · React 19 · TypeScript · Zustand · shadcn/ui (Tailwind v4) · Vitest + React Testing Library · Playwright | Done |
 | `mobile/` | Expo / React Native | Not started |
 
 - Feature spec: [`web/SPEC.md`](web/SPEC.md)
@@ -20,6 +20,7 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # Vitest, single run
 npm run test:watch
+npm run test:e2e   # Playwright; first time: npx playwright install chromium
 npm run typecheck  # tsc -b
 npm run lint       # oxlint
 npm run build
@@ -48,7 +49,7 @@ web/src/
 
 ## What was tested, and where
 
-**Automated:** 45 Vitest tests across 5 files, all passing.
+**Unit/component:** 45 Vitest tests across 5 files, all passing.
 
 | File | Covers |
 |------|--------|
@@ -58,9 +59,23 @@ web/src/
 | `store/directory-store.test.ts` | `setQuery` (raw value), `clearQuery`, `useFilteredPeople` derivation and reference stability |
 | `features/directory/TeamDirectory.test.tsx` | RTL with `user-event`: initial render, typing filters, empty state quotes the trimmed query, both clear actions restore the list and refocus the input, store changes from outside the input show up in the UI |
 
-**Also checked:** `tsc -b` passes, `vite build` succeeds, and the Vite dev server serves the page and compiles the app modules (checked with curl).
+**End-to-end:** 7 Playwright tests (`web/e2e/team-directory.spec.ts`), each run in two projects: **desktop** (Desktop Chrome, 1280×720) and **mobile** (Pixel 7 emulation, 412×839, touch). 14/14 passing. Playwright starts the Vite dev server itself, or reuses one that's already running.
 
-**Not yet checked by hand:** the UI has not been clicked through in a real browser or on mobile. The browser automation tool was unavailable during development, so that check is still to do.
+| Test | Checks |
+|------|--------|
+| U1 | Page title and heading, empty input, 5 people with name and role, "5 people" |
+| U2 | Typing `A` → `AN` → `AN N` narrows 5 → 2 → 1 on each keystroke (case-insensitive partial match) |
+| R7 | `duc tran` finds "Đức Trần" (diacritics, including đ) |
+| U3 | `"  xyz "` shows `No one matches "xyz"`, hides the list, and shows "0 people" |
+| U4a | Inline "Clear search" appears only when there's a query, resets the list, and refocuses the input |
+| U4b | Empty state's "Show everyone" resets the list and refocuses the input |
+| U5 | Count is in an `aria-live="polite"` region and updates to "1 person" |
+
+Each test saves full-page screenshots to [`web/e2e/screenshots/`](web/e2e/screenshots/) (`desktop/` and `mobile/`). They are also attached to the HTML report (`npx playwright show-report`).
+
+**Also checked:** `tsc -b` passes and `vite build` succeeds.
+
+**Not checked:** a physical phone. "Mobile" here means Chromium emulating a Pixel 7 viewport, not a real device or Safari/WebKit.
 
 ## Not done yet
 

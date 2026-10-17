@@ -43,7 +43,20 @@ then well-test all functions and create PR to main
 | 4 | An obvious approach is `useDirectoryStore(s => filterPeople(s.people, s.query))`. In Zustand v5 that returns a new array on every call, so `useSyncExternalStore` loops forever. | Known pitfall; checked during design | Derived the list in `useFilteredPeople()` with two primitive selectors plus `useMemo`. A test asserts the reference stays stable across re-renders. |
 | 5 | Case-insensitive matching alone doesn't handle Vietnamese names: "duc" wouldn't find "Đức", and `normalize('NFD')` doesn't split "đ" | Thought about the data and added test cases | `normalizeText` maps đ/Đ to d/D explicitly, with tests |
 
-**What I did not verify:** I haven't clicked through the UI in a browser or on a phone. The browser tool wasn't connected, so I only confirmed with curl that the dev server serves and compiles the app. That's listed under "Not yet checked by hand" in the README.
+## Prompt 2: end-to-end tests and screenshots
+
+```
+start local server and run e2e tests with playwright then screenshot all tests and put in PR
+```
+
+**How the AI worked:** it added `@playwright/test` with two projects (Desktop Chrome and Pixel 7) and a `webServer` that starts or reuses `vite dev`. It wrote 7 tests that map to the spec ids (U1–U5, R7), with a `snap()` helper that saves named screenshots per project. It started the dev server, ran the suite, and then **looked at the screenshots** before putting them in the PR.
+
+| # | Problem | How it was caught | Fix |
+|---|---------|-------------------|-----|
+| 6 | The first draft of the U2 test typed `O` and expected 2 matches. Only "Olivia Park" contains an "o". | Re-reading the test against the data before running it | Changed the input to `A` → `AN` → `AN N`, which narrows 5 → 2 → 1 |
+| 7 | **Layout bug:** the card stretched to the full viewport height and left a large empty area below the list. Very visible on mobile. `<main>` was `flex` with the default `align-items: stretch`. | **Looking at the e2e screenshots.** Unit tests in jsdom can't catch layout problems. | Added `items-start` to `<main>`, regenerated the screenshots, and re-ran both suites |
+
+**What I did not verify:** a physical phone. The "mobile" run is Chromium emulating a Pixel 7 viewport.
 
 ## Prompting habits I used
 
