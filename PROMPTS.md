@@ -58,12 +58,46 @@ start local server and run e2e tests with playwright then screenshot all tests a
 
 **What I did not verify:** a physical phone. The "mobile" run is Chromium emulating a Pixel 7 viewport.
 
+## Prompt 3: Linear-style issues
+
+```
+Now create basic ticket management as Linear and test it with team members
+```
+
+**How the AI read it:** "with team members" means the five people from the directory are the assignees. Testing it means assigning, filtering and pre-assigning for **each** of them, not just one. "Basic" means a list grouped by status, create/edit/delete, and row menus for status, priority and assignee. A board view, labels and a backend are listed as not done.
+
+**How the AI worked:**
+1. It appended the Issues spec to [`web/SPEC.md`](web/SPEC.md) first, with ids for the logic (T1–T9) and behaviours (I1–I8).
+2. It built pure functions in `lib/tickets.ts` (clock passed in as `now`), then the Zustand store with `persist`, then the components. Assignees are read from the directory store, so there's one team list.
+3. It reused lessons from prompts 1–2:
+   - The empty state's button is "Show all issues", not a second "Clear filters" (the a11y bug from #2).
+   - The derived list uses `useMemo` over primitive selectors (the selector pitfall from #4).
+4. It wrote 131 new unit and component tests and 13 new Playwright tests. The person-specific tests run once for each of the five teammates (`it.each(PEOPLE)` and a loop in Playwright).
+5. All 39 component tests passed on the first run, which was suspicious. So it **deliberately broke the code** to confirm the tests can fail:
+   - It removed the `C` shortcut's `preventDefault` and then its typing guard. Each time the matching test failed.
+   - It added a `console.warn` to the app, and the new e2e console guard failed.
+
+   It restored the code after each check.
+6. It ran the e2e suite and **looked at every screenshot** before calling it done.
+
+| # | Problem | How it was caught | Fix |
+|---|---------|-------------------|-----|
+| 8 | A route test expected `"issues"` (no `#`) to fall back to the team page. `location.hash` always starts with `#` or is empty, so the case can't happen. The test was wrong, not the code. | The test failed, and reading why showed the input was impossible | Removed that case |
+| 9 | The "Low" and "Medium" priority icons looked like stray dots. Lucide's signal icons draw only the lit bars. | **Screenshots** | Custom three-bar icon with the unlit bars dimmed, as Linear does |
+| 10 | On a phone, one-line titles were cut to a few words ("Write e2e tests for the iss…") | **Screenshots** (mobile) | Two lines on small screens (`line-clamp-2`), one line from `sm` up |
+| 11 | Moving `snap()` into `e2e/helpers.ts` broke `tsc -b`: the `nodenext` config wants `./helpers.ts`. Playwright ran fine, so only the typecheck caught it. | Running `npm run typecheck`, not just the tests | Import with the `.ts` extension (`allowImportingTsExtensions` was already on) |
+| 12 | Gap: e2e tests would pass even if React or Radix logged errors, such as a dialog missing its title | Reviewing what the e2e suite could and couldn't see | Each test now fails on any console error, warning or page error. Proven with an injected warning. |
+
+**What I did not verify:** a real phone or Safari. Two browsers sharing data: issues live in each browser's `localStorage`.
+
 ## Prompting habits I used
 
 - **Give types and constraints up front:** the `Person` shape, "pure function", "controlled input", "name only".
 - **Small steps, each one verified:** typecheck after the components, run tests after every test file, build before the PR.
 - **Spec first, then code to match it.** The rule ids make review fast.
 - **Don't trust output that hasn't run.** Correction #2 above only surfaced because the tests actually ran.
+- **Don't trust a test that has never failed.** Break the code on purpose and watch the right test go red (prompt 3, step 5).
+- **Look at the screenshots, not just the green ticks.** Corrections #7, #9 and #10 were all visual, and no assertion would have caught them.
 
 ## Next prompt (mobile)
 
