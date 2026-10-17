@@ -1,18 +1,16 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-/**
- * Saves a screenshot to e2e/screenshots/<project>/<test-id>--<step>.png
- * (committed so the PR can show them) and attaches it to the HTML report.
- */
-async function snap(page: Page, testInfo: TestInfo, step: string) {
-  const testId = testInfo.title.split(' ')[0].toLowerCase()
-  const path = `e2e/screenshots/${testInfo.project.name}/${testId}--${step}.png`
-  const body = await page.screenshot({ path, fullPage: true, animations: 'disabled' })
-  await testInfo.attach(step, { body, contentType: 'image/png' })
-}
+import { snap, trackConsoleProblems } from './helpers.ts'
+
+let consoleProblems: string[] = []
 
 test.beforeEach(async ({ page }) => {
+  consoleProblems = trackConsoleProblems(page)
   await page.goto('/')
+})
+
+test.afterEach(() => {
+  expect(consoleProblems).toEqual([])
 })
 
 const searchBox = (page: Page) => page.getByRole('searchbox', { name: 'Search by name' })
